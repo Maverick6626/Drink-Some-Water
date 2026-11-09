@@ -33,6 +33,7 @@ class WaterRepository(context: Context) {
         private const val KEY_WIDGET_AMOUNT = "widget_amount"
         private const val KEY_WIDGET_DISPLAY = "widget_display" // 0 percentage, 1 amount (ml)
         private const val KEY_THEME_MODE = "theme_mode"   // 0 system, 1 light, 2 dark
+        private const val KEY_WIDGET_THEME = "widget_theme" // 0 light, 1 dark
     }
 
     init {
@@ -52,6 +53,9 @@ class WaterRepository(context: Context) {
 
     fun getThemeMode(): Int = prefs.getInt(KEY_THEME_MODE, 0)
     fun setThemeMode(mode: Int) = prefs.edit().putInt(KEY_THEME_MODE, mode).apply()
+    
+    fun getWidgetTheme(): Int = prefs.getInt(KEY_WIDGET_THEME, 0)
+    fun setWidgetTheme(mode: Int) = prefs.edit().putInt(KEY_WIDGET_THEME, mode).apply()
 
     // ---------- today ----------
     fun getConsumed(): Int = prefs.getInt(DAY_PREFIX + keyFor(0), 0)

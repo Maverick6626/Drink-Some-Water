@@ -35,13 +35,31 @@ class WaterWidgetProvider : AppWidgetProvider() {
         fun updateAppWidget(
             context: Context,
             appWidgetManager: AppWidgetManager,
-            appWidgetId: Int
+            appWidgetId: Int,
+            isWide: Boolean = false
         ) {
             val repo = WaterRepository(context)
             val consumed = repo.getConsumed()
             val goal = repo.getGoal()
+            val isDark = repo.getWidgetTheme() == 1
 
-            val views = RemoteViews(context.packageName, R.layout.water_widget)
+            val layoutId = if (isWide) {
+                if (isDark) R.layout.water_widget_wide_dark else R.layout.water_widget_wide_light
+            } else {
+                if (isDark) R.layout.water_widget_dark else R.layout.water_widget_light
+            }
+
+            val views = RemoteViews(context.packageName, layoutId)
+
+            if (isWide) {
+                val emoteFile = java.io.File(context.filesDir, "emote_image")
+                if (emoteFile.exists()) {
+                    val bitmap = android.graphics.BitmapFactory.decodeFile(emoteFile.absolutePath)
+                    if (bitmap != null) {
+                        views.setImageViewBitmap(R.id.widget_emote, bitmap)
+                    }
+                }
+            }
 
             val percent = if (goal > 0) (consumed.toFloat() / goal * 100).toInt() else 0
             views.setProgressBar(R.id.widget_progress_bar, 100, percent.coerceIn(0, 100), false)
@@ -75,7 +93,10 @@ class WaterWidgetProvider : AppWidgetProvider() {
         fun updateAllWidgets(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
             val ids = manager.getAppWidgetIds(ComponentName(context, WaterWidgetProvider::class.java))
-            for (id in ids) updateAppWidget(context, manager, id)
+            for (id in ids) updateAppWidget(context, manager, id, false)
+            
+            val idsWide = manager.getAppWidgetIds(ComponentName(context, WaterWidgetWideProvider::class.java))
+            for (id in idsWide) updateAppWidget(context, manager, id, true)
         }
     }
 }

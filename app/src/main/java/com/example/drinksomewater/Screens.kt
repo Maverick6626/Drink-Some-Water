@@ -1,6 +1,10 @@
 package com.example.drinksomewater
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import java.io.File
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -528,8 +532,26 @@ fun SettingsScreen(
     var widgetInput by remember { mutableStateOf(repo.getWidgetAmount().toString()) }
     var showReset by remember { mutableStateOf(false) }
     var widgetDisplay by remember { mutableIntStateOf(repo.getWidgetDisplay()) }
+    var widgetTheme by remember { mutableIntStateOf(repo.getWidgetTheme()) }
 
     fun toast(msg: String) = Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+
+    val pickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            try {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    val file = File(context.filesDir, "emote_image")
+                    file.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                WaterWidgetProvider.updateAllWidgets(context)
+                toast("Emote updated")
+            } catch (e: Exception) {
+                toast("Failed to update emote")
+            }
+        }
+    }
 
     if (showReset) {
         AlertDialog(
@@ -627,6 +649,42 @@ fun SettingsScreen(
                     }
                 }
             }
+        }
+
+        AppCard {
+            Text("Widget Theme", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+            Spacer(Modifier.height(12.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("Light", "Dark").forEachIndexed { i, label ->
+                    val mod = Modifier.weight(1f)
+                    val choose = {
+                        widgetTheme = i
+                        repo.setWidgetTheme(i)
+                        WaterWidgetProvider.updateAllWidgets(context)
+                        onDataChanged()
+                    }
+                    if (widgetTheme == i) {
+                        Button(onClick = choose, modifier = mod, shape = RoundedCornerShape(12.dp)) { Text(label) }
+                    } else {
+                        OutlinedButton(onClick = choose, modifier = mod, shape = RoundedCornerShape(12.dp)) { Text(label) }
+                    }
+                }
+            }
+        }
+
+        AppCard {
+            Text("Wide Widget Emote", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+            Text(
+                "Select an image or GIF for the 3-wide widget.",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(12.dp))
+            Button(
+                onClick = { pickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) { Text("Select Emote") }
         }
 
         AppCard {
