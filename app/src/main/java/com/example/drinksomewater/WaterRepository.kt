@@ -6,6 +6,9 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
+/** One drink logged today. */
+data class LogEntry(val ml: Int, val time: String)
+
 /** One day's total, used by the weekly chart. */
 data class DayTotal(
     val dateKey: String,
@@ -24,8 +27,11 @@ class WaterRepository(context: Context) {
         const val MAX_WEEKS_BACK = 26          // ~6 months
         private const val KEEP_DAYS = 26 * 7 + 7
         private const val DAY_PREFIX = "day_"
+        private const val LOG_PREFIX = "log_"
+        private const val KEEP_LOG_DAYS = 14
         private const val KEY_GOAL = "water_goal"
         private const val KEY_WIDGET_AMOUNT = "widget_amount"
+        private const val KEY_WIDGET_DISPLAY = "widget_display" // 0 percentage, 1 amount (ml)
         private const val KEY_THEME_MODE = "theme_mode"   // 0 system, 1 light, 2 dark
     }
 
@@ -41,6 +47,9 @@ class WaterRepository(context: Context) {
     fun getWidgetAmount(): Int = prefs.getInt(KEY_WIDGET_AMOUNT, 250)
     fun setWidgetAmount(amount: Int) = prefs.edit().putInt(KEY_WIDGET_AMOUNT, amount).apply()
 
+    fun getWidgetDisplay(): Int = prefs.getInt(KEY_WIDGET_DISPLAY, 0)
+    fun setWidgetDisplay(mode: Int) = prefs.edit().putInt(KEY_WIDGET_DISPLAY, mode).apply()
+
     fun getThemeMode(): Int = prefs.getInt(KEY_THEME_MODE, 0)
     fun setThemeMode(mode: Int) = prefs.edit().putInt(KEY_THEME_MODE, mode).apply()
 
@@ -48,12 +57,59 @@ class WaterRepository(context: Context) {
     fun getConsumed(): Int = prefs.getInt(DAY_PREFIX + keyFor(0), 0)
 
     fun addWater(amount: Int) {
-        val key = DAY_PREFIX + keyFor(0)
-        prefs.edit().putInt(key, prefs.getInt(key, 0) + amount).apply()
+        val today = keyFor(0)
+        val total = prefs.getInt(DAY_PREFIX + today, 0) + amount
+        val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Calendar.getInstance().time)
+        val log = prefs.getString(LOG_PREFIX + today, "").orEmpty()
+        val entry = "$amount,$time"
+        prefs.edit()
+            .putInt(DAY_PREFIX + today, total)
+            .putString(LOG_PREFIX + today, if (log.isEmpty()) entry else "$log;$entry")
+            .apply()
+    }
+
+    /** Today's drinks, oldest first. */
+    fun getTodayLog(): List<LogEntry> {
+        val raw = prefs.getString(LOG_PREFIX + keyFor(0), "").orEmpty()
+        if (raw.isEmpty()) return emptyList()
+        return raw.split(";").mapNotNull {
+            val parts = it.split(",")
+            val ml = parts.getOrNull(0)?.toIntOrNull()
+            if (ml == null) null else LogEntry(ml, parts.getOrNull(1).orEmpty())
+        }
+    }
+
+    /** Removes one logged drink and takes it off today's total. */
+    fun removeLogEntry(index: Int) {
+        val today = keyFor(0)
+        val log = getTodayLog().toMutableList()
+        if (index !in log.indices) return
+        val removed = log.removeAt(index)
+        val total = (getConsumed() - removed.ml).coerceAtLeast(0)
+        prefs.edit()
+            .putInt(DAY_PREFIX + today, total)
+            .putString(LOG_PREFIX + today, log.joinToString(";") { "${it.ml},${it.time}" })
+            .apply()
     }
 
     fun resetConsumed() {
-        prefs.edit().remove(DAY_PREFIX + keyFor(0)).apply()
+        val today = keyFor(0)
+        prefs.edit().remove(DAY_PREFIX + today).remove(LOG_PREFIX + today).apply()
+    }
+
+    /** Days in a row (ending today, or yesterday if today isn't done yet) that hit the goal. */
+    fun getStreak(): Int {
+        val goal = getGoal()
+        if (goal <= 0) return 0
+        var offset = if (getConsumed() >= goal) 0 else -1
+        var streak = 0
+        while (offset >= -KEEP_DAYS) {
+            if (prefs.getInt(DAY_PREFIX + keyFor(offset), 0) >= goal) {
+                streak++
+                offset--
+            } else break
+        }
+        return streak
     }
 
     // ---------- history ----------
@@ -91,7 +147,11 @@ class WaterRepository(context: Context) {
     /** Drops anything older than ~6 months. */
     private fun prune() {
         val cutoff = DAY_PREFIX + keyFor(-KEEP_DAYS)
-        val old = prefs.all.keys.filter { it.startsWith(DAY_PREFIX) && it < cutoff }
+        val logCutoff = LOG_PREFIX + keyFor(-KEEP_LOG_DAYS)
+        val old = prefs.all.keys.filter {
+            (it.startsWith(DAY_PREFIX) && it < cutoff) ||
+                (it.startsWith(LOG_PREFIX) && it < logCutoff)
+        }
         if (old.isNotEmpty()) {
             prefs.edit().apply { old.forEach { remove(it) } }.apply()
         }

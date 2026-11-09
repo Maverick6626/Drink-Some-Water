@@ -45,6 +45,12 @@ class WaterWidgetProvider : AppWidgetProvider() {
 
             val percent = if (goal > 0) (consumed.toFloat() / goal * 100).toInt() else 0
             views.setProgressBar(R.id.widget_progress_bar, 100, percent.coerceIn(0, 100), false)
+            val mainText = if (repo.getWidgetDisplay() == 1) {
+                String.format(java.util.Locale.getDefault(), "%,d ml", consumed)
+            } else {
+                "$percent%"
+            }
+            views.setTextViewText(R.id.widget_text_main, mainText)
 
             // "+" button adds water
             val addIntent = Intent(context, WaterWidgetProvider::class.java).apply {

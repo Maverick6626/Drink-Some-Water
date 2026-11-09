@@ -141,17 +141,23 @@ fun WaterWaveProgress(progress: Float, modifier: Modifier = Modifier) {
 fun TodayScreen(repo: WaterRepository, refreshKey: Int, onDataChanged: () -> Unit) {
     var consumed by remember { mutableIntStateOf(repo.getConsumed()) }
     var goal by remember { mutableIntStateOf(repo.getGoal()) }
+    var streak by remember { mutableIntStateOf(repo.getStreak()) }
+    var log by remember { mutableStateOf(repo.getTodayLog()) }
     var custom by remember { mutableStateOf("") }
     val focus = LocalFocusManager.current
 
-    LaunchedEffect(refreshKey) {
+    fun refresh() {
         consumed = repo.getConsumed()
         goal = repo.getGoal()
+        streak = repo.getStreak()
+        log = repo.getTodayLog()
     }
+
+    LaunchedEffect(refreshKey) { refresh() }
 
     fun add(amount: Int) {
         repo.addWater(amount)
-        consumed = repo.getConsumed()
+        refresh()
         onDataChanged()
     }
 
@@ -166,18 +172,35 @@ fun TodayScreen(repo: WaterRepository, refreshKey: Int, onDataChanged: () -> Uni
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Column(Modifier.fillMaxWidth()) {
-            Text(
-                "Today",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                if (remaining == 0) "Goal reached 🎉" else "${fmt(remaining)} ml to go",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "Today",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    if (remaining == 0) "Goal reached 🎉" else "${fmt(remaining)} ml to go",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (streak > 0) {
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        "🔥 $streak ${if (streak == 1) "day" else "days"}",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
         }
 
         WaterWaveProgress(progress)
@@ -226,6 +249,48 @@ fun TodayScreen(repo: WaterRepository, refreshKey: Int, onDataChanged: () -> Uni
                     modifier = Modifier.height(56.dp),
                     shape = RoundedCornerShape(14.dp)
                 ) { Text("Add") }
+            }
+        }
+
+        AppCard {
+            Text(
+                "Today's log",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(8.dp))
+            if (log.isEmpty()) {
+                Text(
+                    "Nothing logged yet",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                log.withIndex().reversed().take(10).forEach { (i, entry) ->
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "💧 ${fmt(entry.ml)} ml",
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            entry.time,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        IconButton(onClick = {
+                            repo.removeLogEntry(i)
+                            refresh()
+                            onDataChanged()
+                        }) {
+                            Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
             }
         }
     }
@@ -462,6 +527,7 @@ fun SettingsScreen(
     var goalInput by remember { mutableStateOf(repo.getGoal().toString()) }
     var widgetInput by remember { mutableStateOf(repo.getWidgetAmount().toString()) }
     var showReset by remember { mutableStateOf(false) }
+    var widgetDisplay by remember { mutableIntStateOf(repo.getWidgetDisplay()) }
 
     fun toast(msg: String) = Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
 
@@ -540,6 +606,26 @@ fun SettingsScreen(
                     modifier = Modifier.height(56.dp),
                     shape = RoundedCornerShape(14.dp)
                 ) { Text("Save") }
+            }
+        }
+
+        AppCard {
+            Text("Widget shows", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+            Spacer(Modifier.height(12.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("Percentage", "Amount (ml)").forEachIndexed { i, label ->
+                    val mod = Modifier.weight(1f)
+                    val choose = {
+                        widgetDisplay = i
+                        repo.setWidgetDisplay(i)
+                        onDataChanged()
+                    }
+                    if (widgetDisplay == i) {
+                        Button(onClick = choose, modifier = mod, shape = RoundedCornerShape(12.dp)) { Text(label) }
+                    } else {
+                        OutlinedButton(onClick = choose, modifier = mod, shape = RoundedCornerShape(12.dp)) { Text(label) }
+                    }
+                }
             }
         }
 
