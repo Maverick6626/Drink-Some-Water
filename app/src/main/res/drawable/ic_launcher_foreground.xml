@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Water drop, centered in the adaptive-icon safe zone (108dp canvas) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,26 C54,26 36,48 36,60 C36,70 44,78 54,78 C64,78 72,70 72,60 C72,48 54,26 54,26 Z" />
+    <path
+        android:fillColor="#90CAF9"
+        android:pathData="M45,60 C45,65 48,69 52,70 C48,66 47,62 47,58 Z" />
+</vector>
