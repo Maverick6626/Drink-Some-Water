@@ -673,9 +673,9 @@ fun SettingsScreen(
         }
 
         AppCard {
-            Text("Wide Widget Emote", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+            Text("Widget Emote", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
             Text(
-                "Select an image or GIF for the 3-wide widget.",
+                "Select an image for the 3-wide and 2x2 widgets.",
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

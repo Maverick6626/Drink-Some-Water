@@ -36,22 +36,22 @@ class WaterWidgetProvider : AppWidgetProvider() {
             context: Context,
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int,
-            isWide: Boolean = false
+            widgetType: Int = 0 // 0 = standard, 1 = wide, 2 = large
         ) {
             val repo = WaterRepository(context)
             val consumed = repo.getConsumed()
             val goal = repo.getGoal()
             val isDark = repo.getWidgetTheme() == 1
 
-            val layoutId = if (isWide) {
-                if (isDark) R.layout.water_widget_wide_dark else R.layout.water_widget_wide_light
-            } else {
-                if (isDark) R.layout.water_widget_dark else R.layout.water_widget_light
+            val layoutId = when (widgetType) {
+                1 -> if (isDark) R.layout.water_widget_wide_dark else R.layout.water_widget_wide_light
+                2 -> if (isDark) R.layout.water_widget_large_dark else R.layout.water_widget_large_light
+                else -> if (isDark) R.layout.water_widget_dark else R.layout.water_widget_light
             }
 
             val views = RemoteViews(context.packageName, layoutId)
 
-            if (isWide) {
+            if (widgetType == 1 || widgetType == 2) {
                 val emoteFile = java.io.File(context.filesDir, "emote_image")
                 if (emoteFile.exists()) {
                     val bitmap = android.graphics.BitmapFactory.decodeFile(emoteFile.absolutePath)
@@ -92,11 +92,15 @@ class WaterWidgetProvider : AppWidgetProvider() {
 
         fun updateAllWidgets(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
+            
             val ids = manager.getAppWidgetIds(ComponentName(context, WaterWidgetProvider::class.java))
-            for (id in ids) updateAppWidget(context, manager, id, false)
+            for (id in ids) updateAppWidget(context, manager, id, widgetType = 0)
             
             val idsWide = manager.getAppWidgetIds(ComponentName(context, WaterWidgetWideProvider::class.java))
-            for (id in idsWide) updateAppWidget(context, manager, id, true)
+            for (id in idsWide) updateAppWidget(context, manager, id, widgetType = 1)
+
+            val idsLarge = manager.getAppWidgetIds(ComponentName(context, WaterWidgetLargeProvider::class.java))
+            for (id in idsLarge) updateAppWidget(context, manager, id, widgetType = 2)
         }
     }
 }

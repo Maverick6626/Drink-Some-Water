@@ -48,6 +48,18 @@
                 android:resource="@xml/water_widget_wide_info" />
         </receiver>
 
+        <receiver
+            android:name=".WaterWidgetLargeProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.example.drinksomewater.ADD_WATER" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/water_widget_large_info" />
+        </receiver>
+
     </application>
 
 </manifest>

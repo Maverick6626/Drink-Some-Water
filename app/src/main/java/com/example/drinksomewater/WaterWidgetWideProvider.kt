@@ -8,7 +8,7 @@ import android.content.Intent
 class WaterWidgetWideProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         for (appWidgetId in appWidgetIds) {
-            WaterWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetId, isWide = true)
+            WaterWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetId, widgetType = 1)
         }
     }
 
