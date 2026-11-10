@@ -13,8 +13,11 @@ android {
         applicationId = "com.example.drinksomewater"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = providers.gradleProperty("appVersionCode")
+            .orElse("1").get().toInt()
+
+        versionName = providers.gradleProperty("appVersionName")
+            .orElse("1.0.0").get()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
